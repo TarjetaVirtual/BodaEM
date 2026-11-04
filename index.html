@@ -278,11 +278,21 @@ img {
 .carrusel-slide img { width: 100%; height: 600px; display: block; object-fit: cover; object-position: center; }
 
 @keyframes moverCarrusel {
-    0%, 20% { transform: translateX(0); }
-    25%, 45% { transform: translateX(-100%); }
-    50%, 70% { transform: translateX(-200%); }
-    75%, 95% { transform: translateX(-300%); }
-    100% { transform: translateX(0); }
+    0%, 28% {
+        transform: translateX(0);
+    }
+
+    33%, 61% {
+        transform: translateX(-100%);
+    }
+
+    66%, 94% {
+        transform: translateX(-200%);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
 }
 
 /* ===== CRÉDITOS ===== */
@@ -365,10 +375,10 @@ img {
     <div class="texto-tocar">Abrir Invitación</div>
 </div>
 
-<!-- VIDEO CON FLECHA BAJAR -->
+<!-- VIDEO CON FLECHA BAJAR (sin autoplay: arranca al abrir la invitación) -->
 <section class="foto-inicio video-inicio">
     <div class="video-wrap">
-        <video id="videoInicio" src="video.mp4" poster="4.jpg" autoplay muted loop playsinline preload="auto" class="foto-entrada-celular"></video>
+        <video id="videoInicio" src="video.mp4" poster="4.jpg" muted loop playsinline webkit-playsinline disablepictureinpicture preload="auto" class="foto-entrada-celular"></video>
 
         <a href="#musica" class="flecha-bajar" id="flechaBajar" aria-label="Bajar">
             <span>BAJAR</span>
@@ -469,7 +479,6 @@ img {
 <!-- CARRUSEL -->
 <section class="carrusel-boda">
     <div class="carrusel-track">
-     
         <div class="carrusel-slide"><img src="789.jpeg" alt="Efrain y Mishel"></div>
         <div class="carrusel-slide"><img src="888.jpeg" alt="Efrain y Mishel"></div>
         <div class="carrusel-slide"><img src="9.jpeg" alt="Efrain y Mishel"></div>
@@ -539,19 +548,51 @@ img {
 </div>
 
 <script>
-/* ===== PORTADA / ABRIR INVITACIÓN ===== */
+/* ===== ELEMENTOS PRINCIPALES ===== */
 const preloader = document.getElementById("preloader");
 const audio = document.getElementById("musicaBoda");
 const playIcon = document.querySelector("#playMusic .play-icon");
+const videoInicio = document.getElementById("videoInicio");
 
+let invitacionAbierta = false;
+
+/* ===== VIDEO: se reproduce solo después de abrir la invitación ===== */
+function iniciarVideo() {
+    if (!videoInicio) return;
+    videoInicio.muted = true;
+    videoInicio.defaultMuted = true;
+    var p = videoInicio.play();
+    if (p && typeof p.catch === "function") {
+        p.catch(function () {});
+    }
+}
+
+/* ===== PORTADA / ABRIR INVITACIÓN ===== */
 preloader.addEventListener("click", function () {
+    invitacionAbierta = true;
     preloader.classList.add("hide");
     window.scrollTo({ top: 0, behavior: "instant" });
 
+    /* El toque cuenta como interacción: aquí arranca el video (celular y laptop) */
+    if (videoInicio) {
+        videoInicio.currentTime = 0;
+        iniciarVideo();
+    }
+
+    /* Reintento por si el navegador lo dejó en pausa durante la transición */
+    setTimeout(function () {
+        if (videoInicio && videoInicio.paused) iniciarVideo();
+    }, 900);
+
     audio.play()
         .then(function () { playIcon.classList.add("pause"); })
-        .catch(function (e) { console.log("Reproducción bloqueada:", e); });
+        .catch(function () {});
 }, { once: true });
+
+/* Reanudar el video si el navegador lo pausa al volver a la pestaña */
+document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && invitacionAbierta) iniciarVideo();
+});
 
 /* ===== REPRODUCTOR ===== */
 const progressContainer = document.getElementById("progressContainer");
@@ -561,7 +602,7 @@ const dot = document.getElementById("musicDot");
 function reproducir() {
     audio.play()
         .then(function () { playIcon.classList.add("pause"); })
-        .catch(function () { console.log("No se pudo reproducir."); });
+        .catch(function () {});
 }
 
 document.getElementById("playMusic").addEventListener("click", function (e) {
@@ -658,12 +699,6 @@ function revealOnScroll() {
 }
 window.addEventListener("scroll", revealOnScroll);
 revealOnScroll();
-
-/* ===== VIDEO ===== */
-const videoInicio = document.getElementById("videoInicio");
-if (videoInicio) {
-    videoInicio.play().catch(function (e) { console.log("No se pudo reproducir el video:", e); });
-}
 
 /* ===== DATOS DEL INVITADO ===== */
 const urlDatos = new URLSearchParams(window.location.search);
